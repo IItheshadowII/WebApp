@@ -1,0 +1,5 @@
+{
+  "apiKey": "AIzaSyBB0l7jk3rwy8NlwQjLtEBWR2zG81ntzlM",
+  "model": "models/gemini-2.0-flash-lite",
+  "baseUrl": "https://generativelanguage.googleapis.com/v1beta"
+}
