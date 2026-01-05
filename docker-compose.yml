@@ -12,7 +12,7 @@ services:
     depends_on:
       - db
     ports:
-      - "3000:3000"   # expone la app en el host (y LAN)
+      - "3006:3006"   # expone la app en el host (y LAN)
     volumes:
       - sqlite_data:/app/prisma   # persiste dev.db de Prisma dentro de Docker
 
