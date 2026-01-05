@@ -16,6 +16,8 @@ coverage/
 .vscode/
 docker-compose.override.yml
 *.lognode_modules
+# Ignore local data with secrets
+/.data/
 # Keep environment variables out of version control
 # .env
 
