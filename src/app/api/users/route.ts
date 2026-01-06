@@ -15,9 +15,23 @@ async function requireAdmin() {
     return me
 }
 
+async function requireAuth() {
+    const session = await auth()
+    if (!session?.user?.id) return null
+    const me = await prisma.user.findUnique({ where: { id: session.user.id } })
+    return me
+}
+
 export async function GET() {
-    const me = await requireAdmin()
+    const me = await requireAuth()
     if (!me) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+
+    // Si es admin, devolvemos todos los usuarios; si no, sólo su propio registro
+    if (!me.isAdmin) {
+        return NextResponse.json([
+            { id: me.id, name: me.name, email: me.email, isActive: me.isActive, isAdmin: me.isAdmin },
+        ])
+    }
 
     const users = await prisma.user.findMany({
         select: { id: true, name: true, email: true, isActive: true, isAdmin: true },
