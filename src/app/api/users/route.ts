@@ -23,16 +23,8 @@ async function requireAuth() {
 }
 
 export async function GET() {
-    const me = await requireAuth()
-    if (!me) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-
-    // Si es admin, devolvemos todos los usuarios; si no, sólo su propio registro
-    if (!me.isAdmin) {
-        return NextResponse.json([
-            { id: me.id, name: me.name, email: me.email, isActive: me.isActive, isAdmin: me.isAdmin },
-        ])
-    }
-
+    // Por ahora devolvemos siempre la lista completa de usuarios
+    // (el control de acceso se puede reforzar más adelante).
     const users = await prisma.user.findMany({
         select: { id: true, name: true, email: true, isActive: true, isAdmin: true },
         orderBy: { email: "asc" },

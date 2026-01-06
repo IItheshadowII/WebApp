@@ -9,6 +9,7 @@ services:
       - .env
     environment:
       - AUTH_TRUST_HOST=true
+      - DATABASE_URL=postgresql://web_accesoit:password123@db:5432/web_accesoit?schema=public&sslmode=disable
     depends_on:
       - db
     ports:

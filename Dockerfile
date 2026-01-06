@@ -33,6 +33,7 @@ EXPOSE 3006
 # Aseguramos permisos de escritura incluso cuando se monta el volumen sqlite_data
 RUN chown -R node:node /app
 
-# Ejecutar migraciones (si aplica) antes de iniciar y arrancar Next.js
-# Usamos la variable de entorno PORT para no forzar 3000
-CMD ["sh", "-c", "npx prisma migrate deploy || true && npm run start -- -H 0.0.0.0 -p $PORT"]
+# In production we avoid running automatic prisma migrations in the container
+# because migration histories may target a different provider (dev vs prod).
+# Start Next.js directly; run migrations manually or from your CI if needed.
+CMD ["sh", "-c", "npm run start -- -H 0.0.0.0 -p $PORT"]
