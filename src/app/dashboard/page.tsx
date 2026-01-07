@@ -240,8 +240,12 @@ export default function DashboardPage() {
                                                         {t.type === 'INCOME' ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
                                                     </div>
                                                     <div className="flex flex-col">
-                                                        <span className="text-sm font-bold text-white/90 group-hover:text-white capitalize">{t.category?.toLowerCase() || 'Varios'}</span>
-                                                        <span className="text-[10px] text-white/40">{new Date(t.date).toLocaleDateString()}</span>
+                                                        <span className="text-sm font-bold text-white/90 group-hover:text-white">
+                                                            {t.description || 'Sin descripción'}
+                                                        </span>
+                                                        <span className="text-[10px] text-white/40">
+                                                            {(t.category && t.category.toLowerCase()) || 'Varios'} · {new Date(t.date).toLocaleDateString()}
+                                                        </span>
                                                     </div>
                                                 </div>
 
