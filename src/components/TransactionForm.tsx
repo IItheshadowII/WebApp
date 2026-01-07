@@ -92,8 +92,12 @@ export const TransactionForm = ({ type = 'EXPENSE', onSuccess, mode = 'create', 
         setStatus('LOADING')
 
         try {
-            const res = await fetch('/api/transactions', {
-                method: 'POST',
+            const isEdit = mode === 'edit' && transaction?.id
+            const url = isEdit ? `/api/transactions/${transaction.id}` : '/api/transactions'
+            const method = isEdit ? 'PATCH' : 'POST'
+
+            const res = await fetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     // normalize before sending
@@ -111,8 +115,12 @@ export const TransactionForm = ({ type = 'EXPENSE', onSuccess, mode = 'create', 
             if (res.ok) {
                 setStatus('SUCCESS')
                 toast.success(
-                    `${type === 'INCOME' ? 'Ingreso' : 'Gasto'} registrado`,
-                    `Se ha registrado correctamente ${data.description}`
+                    isEdit
+                        ? `${effectiveType === 'INCOME' ? 'Ingreso' : 'Gasto'} actualizado`
+                        : `${effectiveType === 'INCOME' ? 'Ingreso' : 'Gasto'} registrado`,
+                    isEdit
+                        ? `Se actualizó correctamente ${data.description}`
+                        : `Se ha registrado correctamente ${data.description}`
                 )
 
                 // Refresh sin reload completo
