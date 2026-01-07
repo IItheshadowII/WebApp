@@ -333,47 +333,60 @@ export default function DashboardPage() {
                 <div className="w-full max-w-[1600px] mx-auto px-8 py-6 md:px-12 md:py-12 lg:px-16 lg:py-16 space-y-12">
 
                     {/* Header */}
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 pb-8 border-b border-white/5">
-                        <div className="flex items-center gap-6">
-                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 p-[1px] shadow-2xl overflow-hidden ring-1 ring-white/10">
-                                <img src={session.user?.image || "https://ui-avatars.com/api/?name=User"} alt="Profile" className="w-full h-full object-cover" />
+                    <div className="pb-8 border-b border-white/5 space-y-3">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
+                            <div className="flex items-center gap-6">
+                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 p-[1px] shadow-2xl overflow-hidden ring-1 ring-white/10">
+                                    <img src={session.user?.image || "https://ui-avatars.com/api/?name=User"} alt="Profile" className="w-full h-full object-cover" />
+                                </div>
+                                <div className="space-y-1">
+                                    <h1 className="text-3xl font-extrabold tracking-tight">
+                                        Hola, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">{session.user?.name?.split(' ')[0]}</span>
+                                    </h1>
+                                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">
+                                        {currentView === 'DASHBOARD' ? 'Panel de Control' : currentView}
+                                    </p>
+                                </div>
                             </div>
-                            <div className="space-y-1">
-                                <h1 className="text-3xl font-extrabold tracking-tight">
-                                    Hola, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">{session.user?.name?.split(' ')[0]}</span>
-                                </h1>
-                                <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">
-                                    {currentView === 'DASHBOARD' ? 'Panel de Control' : currentView}
-                                </p>
+
+                            <div className="flex items-stretch gap-8 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+                                {(() => {
+                                    const rate = usdRate > 0 ? usdRate : 1
+
+                                    const totalIncomeARS = transactions.reduce((acc, t) => {
+                                        if (t.type !== 'INCOME') return acc
+                                        return acc + (t.currency === 'USD' ? t.amount * rate : t.amount)
+                                    }, 0)
+
+                                    const totalExpensesARS = transactions.reduce((acc, t) => {
+                                        if (t.type !== 'EXPENSE') return acc
+                                        return acc + (t.currency === 'USD' ? t.amount * rate : t.amount)
+                                    }, 0)
+
+                                    const balanceTotal = totalIncomeARS - totalExpensesARS
+
+                                    return (
+                                        <SummaryCard
+                                            label="Balance Total"
+                                            amount={balanceTotal.toLocaleString()}
+                                            currency="ARS"
+                                        />
+                                    )
+                                })()}
+                                <div className="w-[1px] bg-white/10 hidden md:block" />
+                                <SummaryCard label="Gastos USD" amount={transactions.reduce((acc, t) => t.type === 'EXPENSE' && t.currency === 'USD' ? acc + t.amount : acc, 0).toLocaleString()} currency="USD" />
                             </div>
                         </div>
 
-                        <div className="flex items-stretch gap-8 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
-                            {(() => {
-                                const rate = usdRate > 0 ? usdRate : 1
-
-                                const totalIncomeARS = transactions.reduce((acc, t) => {
-                                    if (t.type !== 'INCOME') return acc
-                                    return acc + (t.currency === 'USD' ? t.amount * rate : t.amount)
-                                }, 0)
-
-                                const totalExpensesARS = transactions.reduce((acc, t) => {
-                                    if (t.type !== 'EXPENSE') return acc
-                                    return acc + (t.currency === 'USD' ? t.amount * rate : t.amount)
-                                }, 0)
-
-                                const balanceTotal = totalIncomeARS - totalExpensesARS
-
-                                return (
-                                    <SummaryCard
-                                        label="Balance Total"
-                                        amount={balanceTotal.toLocaleString()}
-                                        currency="ARS"
-                                    />
-                                )
-                            })()}
-                            <div className="w-[1px] bg-white/10 hidden md:block" />
-                            <SummaryCard label="Gastos USD" amount={transactions.reduce((acc, t) => t.type === 'EXPENSE' && t.currency === 'USD' ? acc + t.amount : acc, 0).toLocaleString()} currency="USD" />
+                        <div className="text-[10px] text-white/40 font-bold tracking-[0.2em] mt-1">
+                            {usdRate && usdRate > 0 && (
+                                <span>
+                                    DÓLAR OFICIAL (VENTA) · $ {usdRate.toLocaleString('es-AR', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                    })}
+                                </span>
+                            )}
                         </div>
                     </div>
 
