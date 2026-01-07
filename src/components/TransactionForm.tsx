@@ -50,6 +50,36 @@ export const TransactionForm = ({ type = 'EXPENSE', onSuccess }: { type?: 'EXPEN
     const incomeType = watch('incomeType')
     const currency = watch('currency')
 
+    function normalizeNumberInput(input: string) {
+        // Keep only digits, dots and commas
+        let s = String(input || '').replace(/[^0-9.,]/g, '')
+        if (!s) return ''
+
+        // Normalize commas to dots (treat comma as decimal separator)
+        s = s.replace(/,/g, '.')
+
+        const dotCount = (s.match(/\./g) || []).length
+
+        if (dotCount > 1) {
+            // Remove all dots except the last (they were thousand separators)
+            const lastIndex = s.lastIndexOf('.')
+            const intPart = s.slice(0, lastIndex).replace(/\./g, '')
+            const fracPart = s.slice(lastIndex + 1)
+            return fracPart ? `${intPart}.${fracPart}` : intPart
+        }
+
+        if (dotCount === 1) {
+            const [intPart, fracPart] = s.split('.')
+            // Heuristic: if fractional part has exactly 3 digits, it's likely a thousand separator
+            if (fracPart.length === 3) {
+                return `${intPart}${fracPart}`
+            }
+            return fracPart ? `${intPart}.${fracPart}` : intPart
+        }
+
+        return s
+    }
+
     const onSubmit = async (data: TransactionFormData) => {
         setStatus('LOADING')
 
@@ -58,7 +88,8 @@ export const TransactionForm = ({ type = 'EXPENSE', onSuccess }: { type?: 'EXPEN
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    amount: parseFloat(data.amount),
+                        // normalize before sending
+                        amount: parseFloat(normalizeNumberInput(data.amount)),
                     description: data.description,
                     currency: data.currency,
                     type,
