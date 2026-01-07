@@ -25,9 +25,11 @@ export async function POST(req: NextRequest) {
         response.cookies.set(SESSION_COOKIE_NAME, session.sessionToken, {
             httpOnly: true,
             sameSite: "lax",
-            // En producción (HTTPS) conviene marcar Secure.
-            secure: process.env.NODE_ENV === "production",
+            // Mantenerlo en false para evitar bucles de login cuando el sitio corre sin HTTPS
+            // (algunos proxies terminan SSL y el backend puede quedar en HTTP).
+            secure: false,
             path: "/",
+            maxAge: 60 * 60 * 24 * 30,
             expires: new Date(session.expires),
         })
 
