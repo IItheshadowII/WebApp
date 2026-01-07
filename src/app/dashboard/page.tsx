@@ -30,8 +30,8 @@ import { UsersManagement } from '@/components/UsersManagement'
 type ViewState = 'DASHBOARD' | 'TRANSACTIONS' | 'ANALYTICS' | 'SETTINGS' | 'USERS'
 
 export default function DashboardPage() {
-    // Eliminamos dependencia de autenticación: consideramos siempre un usuario genérico
-    const [session] = useState<any>({ user: { name: 'Usuario', image: null } })
+    // Estado de sesión: intentamos cargar el usuario real desde el backend, si no existe usamos un genérico
+    const [session, setSession] = useState<any | null>(null)
 
     // UI States
     const [isSidebarOpen, setIsSidebarOpen] = useState(true)
@@ -94,6 +94,22 @@ export default function DashboardPage() {
 
     useEffect(() => {
         fetchData()
+    }, [])
+
+    // Load current user (or default demo user) to show proper name in greeting
+    useEffect(() => {
+        const loadUser = async () => {
+            try {
+                const res = await fetch('/api/auth/me')
+                if (!res.ok) return
+                const data = await res.json().catch(() => ({}))
+                if (data?.user) setSession({ user: data.user })
+            } catch (e) {
+                // keep session null
+            }
+        }
+
+        loadUser()
     }, [])
 
     useEffect(() => {
@@ -341,7 +357,7 @@ export default function DashboardPage() {
                                 </div>
                                 <div className="space-y-1">
                                     <h1 className="text-3xl font-extrabold tracking-tight">
-                                        Hola, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">{session.user?.name?.split(' ')[0]}</span>
+                                        Hola, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">{session?.user?.name ? session.user.name.split(' ')[0] : 'Usuario'}</span>
                                     </h1>
                                     <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">
                                         {currentView === 'DASHBOARD' ? 'Panel de Control' : currentView}
@@ -355,11 +371,14 @@ export default function DashboardPage() {
 
                                     const totalIncomeARS = transactions.reduce((acc, t) => {
                                         if (t.type !== 'INCOME') return acc
+                                        // incluir solo items pagados en el Balance Total
+                                        if (!t.isPaid) return acc
                                         return acc + (t.currency === 'USD' ? t.amount * rate : t.amount)
                                     }, 0)
 
                                     const totalExpensesARS = transactions.reduce((acc, t) => {
                                         if (t.type !== 'EXPENSE') return acc
+                                        if (!t.isPaid) return acc
                                         return acc + (t.currency === 'USD' ? t.amount * rate : t.amount)
                                     }, 0)
 
