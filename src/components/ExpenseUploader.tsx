@@ -126,9 +126,6 @@ export const ExpenseUploader = ({ onSaved }: { onSaved?: () => void }) => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
             streamRef.current = stream
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream
-            }
             setIsCameraOpen(true)
         } catch (e) {
             console.error('No se pudo acceder a la cámara', e)
@@ -137,12 +134,48 @@ export const ExpenseUploader = ({ onSaved }: { onSaved?: () => void }) => {
     }
 
     const closeCamera = () => {
+        if (videoRef.current) {
+            try {
+                // @ts-ignore
+                videoRef.current.srcObject = null
+            } catch { }
+        }
         if (streamRef.current) {
             streamRef.current.getTracks().forEach(t => t.stop())
             streamRef.current = null
         }
         setIsCameraOpen(false)
     }
+
+    useEffect(() => {
+        if (!isCameraOpen) return
+        const video = videoRef.current
+        const stream = streamRef.current
+        if (!video || !stream) return
+
+        // Asignamos el stream cuando el modal ya montó el <video>
+        // @ts-ignore
+        video.srcObject = stream
+
+        const play = async () => {
+            try {
+                await video.play()
+            } catch (e) {
+                // Si el navegador bloquea autoplay, al menos queda listo para reproducir
+                console.warn('No se pudo auto-reproducir la cámara:', e)
+            }
+        }
+
+        if (video.readyState >= 1) {
+            void play()
+        } else {
+            video.onloadedmetadata = () => { void play() }
+        }
+
+        return () => {
+            video.onloadedmetadata = null
+        }
+    }, [isCameraOpen])
 
     const handleCapture = async () => {
         if (!videoRef.current) return
@@ -311,6 +344,7 @@ export const ExpenseUploader = ({ onSaved }: { onSaved?: () => void }) => {
                                 ref={videoRef}
                                 autoPlay
                                 playsInline
+                                muted
                                 className="w-full h-64 object-contain bg-black"
                             />
                         </div>
