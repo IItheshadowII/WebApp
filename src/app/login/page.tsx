@@ -19,6 +19,7 @@ export default function LoginPage() {
             const res = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ email, password }),
             })
 
@@ -26,12 +27,6 @@ export default function LoginPage() {
 
             if (!res.ok || !data.ok) {
                 throw new Error(data.error || 'Error al iniciar sesión')
-            }
-
-            // Refuerza la cookie de sesión en el cliente por si el navegador
-            // no aplicó correctamente el `Set-Cookie` del servidor.
-            if (data.sessionToken) {
-                document.cookie = `session_token=${data.sessionToken}; path=/`;
             }
 
             // Navegación completa para cargar el dashboard ya autenticado.

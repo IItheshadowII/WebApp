@@ -9,14 +9,13 @@ const PUBLIC_PATHS = [
     "/login",
     "/api/auth/login",
     "/api/auth/logout",
-    "/api/auth/validate",
 ];
 
 function isPublicPath(pathname: string) {
     return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }
 
-export async function middleware(req: NextRequest) {
+export function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
 
     // Permitir siempre archivos estáticos y recursos internos
@@ -39,27 +38,6 @@ export async function middleware(req: NextRequest) {
     if (!token) {
         const loginUrl = new URL("/login", req.url);
         // Guardamos la URL original para poder redirigir después del login si se quiere
-        loginUrl.searchParams.set("from", pathname);
-        return NextResponse.redirect(loginUrl);
-    }
-
-    // Validar que la cookie corresponde a una sesión real (evita entrar con cookies inválidas).
-    try {
-        const validateUrl = new URL("/api/auth/validate", req.url)
-        const res = await fetch(validateUrl, {
-            headers: {
-                cookie: req.headers.get("cookie") ?? "",
-            },
-            cache: "no-store",
-        })
-
-        if (!res.ok) {
-            const loginUrl = new URL("/login", req.url);
-            loginUrl.searchParams.set("from", pathname);
-            return NextResponse.redirect(loginUrl);
-        }
-    } catch {
-        const loginUrl = new URL("/login", req.url);
         loginUrl.searchParams.set("from", pathname);
         return NextResponse.redirect(loginUrl);
     }

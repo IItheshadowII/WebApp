@@ -93,7 +93,7 @@ export async function signOut() {
     cookieStore.set?.(SESSION_COOKIE_NAME, "", {
         httpOnly: true,
         sameSite: "lax",
-        secure: false,
+        secure: process.env.NODE_ENV === "production",
         path: "/",
         maxAge: 0,
     })

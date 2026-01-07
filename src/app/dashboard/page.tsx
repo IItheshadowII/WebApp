@@ -101,6 +101,10 @@ export default function DashboardPage() {
         const loadUser = async () => {
             try {
                 const res = await fetch('/api/auth/me')
+                if (res.status === 401) {
+                    window.location.href = '/login'
+                    return
+                }
                 if (!res.ok) return
                 const data = await res.json().catch(() => ({}))
                 if (data?.user) setSession({ user: data.user })

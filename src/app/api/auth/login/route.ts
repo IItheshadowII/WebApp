@@ -25,9 +25,8 @@ export async function POST(req: NextRequest) {
         response.cookies.set(SESSION_COOKIE_NAME, session.sessionToken, {
             httpOnly: true,
             sameSite: "lax",
-            // IMPORTANTE: en tu entorno actual la app corre sobre HTTP (no HTTPS),
-            // por eso no usamos `secure: true` porque el navegador ignoraría la cookie.
-            secure: false,
+            // En producción (HTTPS) conviene marcar Secure.
+            secure: process.env.NODE_ENV === "production",
             path: "/",
             expires: new Date(session.expires),
         })
