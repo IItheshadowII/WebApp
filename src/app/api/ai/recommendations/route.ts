@@ -58,27 +58,11 @@ function extractTextFromGoogleResponse(data: any) {
 
 export async function GET(req: NextRequest) {
     const session = await auth();
+    const userId = session?.user?.id;
 
-    // Allow demo mode: if no session, use or create a default user (same approach as transactions endpoints)
-    async function getOrCreateDefaultUserId() {
-        const defaultEmail = process.env.DEFAULT_USER_EMAIL || "mock@example.com";
-
-        const user = await prisma.user.upsert({
-            where: { email: defaultEmail },
-            update: {},
-            create: {
-                email: defaultEmail,
-                name: "Usuario",
-                isActive: true,
-                isAdmin: true,
-            },
-        });
-
-        return user.id;
+    if (!userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    let userId = session?.user?.id || null
-    if (!userId) userId = await getOrCreateDefaultUserId()
 
     const settings = await loadSettingsForUser(userId || undefined)
     if (!settings || !settings.apiKey) {
