@@ -176,27 +176,38 @@ export const TransactionForm = ({ type = 'EXPENSE', onSuccess }: { type?: 'EXPEN
                             placeholder="0.00"
                             value={(() => {
                                 const raw = (watch('amount') || '') as string
-                                // Keep empty
                                 if (raw === '') return ''
-                                // Remove any non digit or dot (we store raw with dot as decimal separator)
-                                const cleaned = String(raw).replace(/[^0-9.]/g, '')
+
+                                // Keep only digits, dots and commas for display logic
+                                const cleaned = String(raw).replace(/[^0-9.,]/g, '')
+
+                                // If user typed a comma, treat comma as decimal separator (locale format: 1.234,56)
+                                if (cleaned.includes(',')) {
+                                    const parts = cleaned.split(',')
+                                    const intPart = parts[0].replace(/\./g, '')
+                                    const fracPart = parts.slice(1).join('')
+                                    const withSep = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+                                    return fracPart !== undefined && fracPart !== '' ? `${withSep},${fracPart}` : withSep
+                                }
+
+                                // Otherwise, use dot as decimal separator (fallback)
                                 const parts = cleaned.split('.')
                                 const intPart = parts[0]
                                 const fracPart = parts[1]
-                                // add dot as thousand separator
                                 const withSep = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-                                return fracPart !== undefined ? `${withSep}.${fracPart}` : withSep
+                                return fracPart !== undefined && fracPart !== '' ? `${withSep}.${fracPart}` : withSep
                             })()}
-                            onChange={(e) => {
-                                // Accept digits and dot. Remove thousand separators from incoming value
-                                const incoming = e.target.value
-                                // allow only digits and dot
-                                const filtered = incoming.replace(/[^0-9.]/g, '')
-                                // ensure at most one dot
-                                const parts = filtered.split('.')
-                                const raw = parts.length > 1 ? `${parts[0]}.${parts.slice(1).join('')}` : parts[0]
-                                setValue('amount', raw, { shouldValidate: true, shouldDirty: true })
-                            }}
+                                onChange={(e) => {
+                                    const incoming = e.target.value
+                                    // allow only digits, dots and commas
+                                    let filtered = incoming.replace(/[^0-9.,]/g, '')
+                                    // If there are multiple commas, keep only the first (decimal separator)
+                                    if ((filtered.match(/,/g) || []).length > 1) {
+                                        const parts = filtered.split(',')
+                                        filtered = parts[0] + ',' + parts.slice(1).join('')
+                                    }
+                                    setValue('amount', filtered, { shouldValidate: true, shouldDirty: true })
+                                }}
                             className="flex-1 bg-transparent border-none outline-none text-4xl font-bold tracking-tighter text-white placeholder:text-white/10 font-mono"
                             autoFocus
                             aria-invalid={errors.amount ? "true" : "false"}
