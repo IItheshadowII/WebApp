@@ -353,7 +353,7 @@ export default function DashboardPage() {
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
                             <div className="flex items-center gap-6">
                                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 p-[1px] shadow-2xl overflow-hidden ring-1 ring-white/10">
-                                    <img src={session.user?.image || "https://ui-avatars.com/api/?name=User"} alt="Profile" className="w-full h-full object-cover" />
+                                    <img src={session?.user?.image || "https://ui-avatars.com/api/?name=User"} alt="Profile" className="w-full h-full object-cover" />
                                 </div>
                                 <div className="space-y-1">
                                     <h1 className="text-3xl font-extrabold tracking-tight">
