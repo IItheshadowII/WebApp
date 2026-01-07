@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
+import { broadcastRealtime } from "@/lib/realtime";
 
 export async function POST(req: NextRequest) {
     const session = await auth();
@@ -55,6 +56,8 @@ export async function POST(req: NextRequest) {
         },
     });
 
+    broadcastRealtime('transactions.changed', { action: 'created', id: transaction.id });
+
     return NextResponse.json(transaction);
 }
 
@@ -67,7 +70,6 @@ export async function GET(req: NextRequest) {
     }
 
     const transactions = await prisma.transaction.findMany({
-        where: { userId },
         orderBy: { date: 'desc' },
     });
 

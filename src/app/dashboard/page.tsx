@@ -96,6 +96,28 @@ export default function DashboardPage() {
         fetchData()
     }, [])
 
+    // Realtime updates (SSE)
+    useEffect(() => {
+        let es: EventSource | null = null
+        try {
+            es = new EventSource('/api/realtime')
+            es.onmessage = () => {
+                // Cambios hechos por cualquier usuario
+                fetchData()
+            }
+            es.onerror = () => {
+                // Dejar que el navegador reintente; no spamear
+            }
+        } catch (e) {
+            // SSE no disponible (browser/proxy). Sin realtime.
+        }
+
+        return () => {
+            if (es) es.close()
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
     // Load current user (or default demo user) to show proper name in greeting
     useEffect(() => {
         const loadUser = async () => {
@@ -463,7 +485,7 @@ export default function DashboardPage() {
                                     <h3 className="text-2xl font-bold">Scanner Inteligente</h3>
                                 </div>
                             </div>
-                            <ExpenseUploader />
+                            <ExpenseUploader onSaved={fetchData} />
                         </div>
                     </Modal>
                 )}

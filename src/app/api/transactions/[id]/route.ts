@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
+import { broadcastRealtime } from "@/lib/realtime";
 
 export async function PATCH(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     const session = await auth();
-    const userId = session?.user?.id;
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await params;
     const data = await req.json();
 
-    const existing = await prisma.transaction.findFirst({ where: { id, userId } });
+    const existing = await prisma.transaction.findFirst({ where: { id } });
     if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const updateData: any = {};
@@ -45,6 +45,8 @@ export async function PATCH(
         data: updateData,
     });
 
+    broadcastRealtime('transactions.changed', { action: 'updated', id });
+
     return NextResponse.json(updated);
 }
 
@@ -53,17 +55,18 @@ export async function DELETE(
     { params }: { params: Promise<{ id: string }> }
 ) {
     const session = await auth();
-    const userId = session?.user?.id;
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await params;
 
-    const existing = await prisma.transaction.findFirst({ where: { id, userId } });
+    const existing = await prisma.transaction.findFirst({ where: { id } });
     if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     await prisma.transaction.delete({
         where: { id },
     });
+
+    broadcastRealtime('transactions.changed', { action: 'deleted', id });
 
     return NextResponse.json({ success: true });
 }

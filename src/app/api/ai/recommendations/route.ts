@@ -8,13 +8,11 @@ const DATA_DIR = path.join(process.cwd(), '.data')
 const SETTINGS_FILE = path.join(DATA_DIR, 'google_settings.json')
 
 async function loadSettingsForUser(userId: string | undefined) {
-    // Try DB first
-    if (userId) {
-        const aiConfig = await prisma.aIConfig.findFirst({ where: { userId } })
-        if (aiConfig && aiConfig.apiKey) {
-            // El modelo se guarda como modelName en la tabla AIConfig
-            return { apiKey: aiConfig.apiKey, model: aiConfig.modelName }
-        }
+    // Try DB first (config global compartida)
+    const aiConfig = await prisma.aIConfig.findFirst()
+    if (aiConfig && aiConfig.apiKey) {
+        // El modelo se guarda como modelName en la tabla AIConfig
+        return { apiKey: aiConfig.apiKey, model: aiConfig.modelName }
     }
 
     // Fallback to local .data settings
@@ -70,7 +68,6 @@ export async function GET(req: NextRequest) {
     }
 
     const transactions = await prisma.transaction.findMany({
-        where: { userId },
         take: 50,
         orderBy: { date: 'desc' }
     });
