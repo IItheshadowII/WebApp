@@ -169,45 +169,18 @@ export const TransactionForm = ({ type = 'EXPENSE', onSuccess }: { type?: 'EXPEN
                     <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/30 ml-1">Monto</label>
                     <div className={`flex items-center gap-3 p-6 ${errors.amount ? 'bg-rose-500/5 border-rose-500/30' : 'bg-white/[0.02] border-white/10'} border rounded-2xl focus-within:border-white/20 focus-within:bg-white/[0.04] transition-all`}>
                         <span className="text-2xl font-light text-white/30">{currency === 'USD' ? 'U$D' : '$'}</span>
-                        {/* Controlled text input to format thousands with dots while keeping raw value in form state */}
+                        {/* Campo de texto simple: deja escribir puntos y comas tal cual, sin re-formatear */}
                         <input
                             type="text"
                             inputMode="decimal"
                             placeholder="0.00"
-                            value={(() => {
-                                const raw = (watch('amount') || '') as string
-                                if (raw === '') return ''
-
-                                // Keep only digits, dots and commas for display logic
-                                const cleaned = String(raw).replace(/[^0-9.,]/g, '')
-
-                                // If user typed a comma, treat comma as decimal separator (locale format: 1.234,56)
-                                if (cleaned.includes(',')) {
-                                    const parts = cleaned.split(',')
-                                    const intPart = parts[0].replace(/\./g, '')
-                                    const fracPart = parts.slice(1).join('')
-                                    const withSep = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-                                    return fracPart !== undefined && fracPart !== '' ? `${withSep},${fracPart}` : withSep
-                                }
-
-                                // Otherwise, use dot as decimal separator (fallback)
-                                const parts = cleaned.split('.')
-                                const intPart = parts[0]
-                                const fracPart = parts[1]
-                                const withSep = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-                                return fracPart !== undefined && fracPart !== '' ? `${withSep}.${fracPart}` : withSep
-                            })()}
-                                onChange={(e) => {
-                                    const incoming = e.target.value
-                                    // allow only digits, dots and commas
-                                    let filtered = incoming.replace(/[^0-9.,]/g, '')
-                                    // If there are multiple commas, keep only the first (decimal separator)
-                                    if ((filtered.match(/,/g) || []).length > 1) {
-                                        const parts = filtered.split(',')
-                                        filtered = parts[0] + ',' + parts.slice(1).join('')
-                                    }
-                                    setValue('amount', filtered, { shouldValidate: true, shouldDirty: true })
-                                }}
+                            value={(watch('amount') || '') as string}
+                            onChange={(e) => {
+                                const incoming = e.target.value
+                                // Permitimos sólo dígitos, puntos y comas, respetando el orden que escribe el usuario
+                                const filtered = incoming.replace(/[^0-9.,]/g, '')
+                                setValue('amount', filtered, { shouldValidate: true, shouldDirty: true })
+                            }}
                             className="flex-1 bg-transparent border-none outline-none text-4xl font-bold tracking-tighter text-white placeholder:text-white/10 font-mono"
                             autoFocus
                             aria-invalid={errors.amount ? "true" : "false"}
