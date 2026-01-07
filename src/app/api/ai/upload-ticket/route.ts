@@ -22,11 +22,20 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const extraction = await extractTicketData(
-        buffer,
-        aiConfig.provider as any,
-        aiConfig.apiKey
-    );
+    try {
+        const extraction = await extractTicketData(
+            buffer,
+            aiConfig.provider as any,
+            aiConfig.apiKey
+        );
 
-    return NextResponse.json(extraction);
+        if (!extraction) {
+            return NextResponse.json({ error: 'No se pudieron extraer los datos del ticket. Revisa la configuración de IA o intenta otra foto.' }, { status: 500 });
+        }
+
+        return NextResponse.json(extraction);
+    } catch (e: any) {
+        console.error('Error procesando ticket:', e?.message || e)
+        return NextResponse.json({ error: 'Error interno al procesar el ticket.', details: String(e?.message || e) }, { status: 500 })
+    }
 }

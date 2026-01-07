@@ -8,6 +8,7 @@ export const ExpenseUploader = () => {
     const [isUploading, setIsUploading] = useState(false)
     const [preview, setPreview] = useState<string | null>(null)
     const [extractedData, setExtractedData] = useState<any>(null)
+    const [extractionError, setExtractionError] = useState<string | null>(null)
 
     const [isCameraOpen, setIsCameraOpen] = useState(false)
     const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -26,7 +27,13 @@ export const ExpenseUploader = () => {
                 body: formData,
             })
             const data = await response.json()
-            setExtractedData(data)
+            if (data?.error) {
+                setExtractionError(data.error + (data.details ? (" — " + data.details) : ""))
+                setExtractedData(null)
+            } else {
+                setExtractedData(data)
+                setExtractionError(null)
+            }
         } catch (error) {
             console.error("Error uploading ticket:", error)
         } finally {
@@ -128,6 +135,12 @@ export const ExpenseUploader = () => {
                 <div className="flex items-center justify-center gap-3 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
                     <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
                     <span className="text-sm font-medium text-blue-400">Analizando con IA...</span>
+                </div>
+            )}
+
+            {extractionError && (
+                <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl text-sm text-rose-300">
+                    <strong>Error:</strong> {extractionError}
                 </div>
             )}
 
