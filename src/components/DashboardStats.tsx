@@ -3,7 +3,6 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import { Card } from './ui-glass'
 import { TrendingUp, TrendingDown, DollarSign, Wallet, PiggyBank, Eye, EyeOff, Trash2 } from 'lucide-react'
-import { motion } from 'framer-motion'
 
 interface DashboardStatsProps {
     transactions: any[]
@@ -11,7 +10,14 @@ interface DashboardStatsProps {
 }
 
 export const DashboardStats = ({ transactions, usdRate = 1 }: DashboardStatsProps) => {
-    const [savingsGoals, setSavingsGoals] = useState<Array<{id:string,name:string,amount:number,visible?:boolean}>>([])
+    interface SavingsGoal {
+        id: string
+        name: string
+        amount: number
+        visible?: boolean
+    }
+
+    const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([])
 
     useEffect(() => {
         try {
@@ -27,18 +33,18 @@ export const DashboardStats = ({ transactions, usdRate = 1 }: DashboardStatsProp
         }
     }, [transactions])
 
-    const persistGoals = (next: any[]) => {
+    const persistGoals = (next: SavingsGoal[]) => {
         localStorage.setItem('savingsGoals', JSON.stringify(next))
         setSavingsGoals(next)
     }
 
     const toggleGoalVisibility = (id: string) => {
-        const next = savingsGoals.map(g => g.id === id ? { ...g, visible: !g.visible } : g)
+        const next = savingsGoals.map((g: SavingsGoal) => g.id === id ? { ...g, visible: !g.visible } : g)
         persistGoals(next)
     }
 
     const deleteGoal = (id: string) => {
-        const next = savingsGoals.filter(g => g.id !== id)
+        const next = savingsGoals.filter((g: SavingsGoal) => g.id !== id)
         persistGoals(next)
     }
     const stats = useMemo(() => {
@@ -209,11 +215,12 @@ export const DashboardStats = ({ transactions, usdRate = 1 }: DashboardStatsProp
 interface StatCardProps {
     label: string
     value: string
-    icon: any
+    icon: React.ComponentType<{ className?: string }>
     color: 'emerald' | 'rose' | 'blue'
     trend: string
     delay: number
     actions?: React.ReactNode
+    key?: React.Key
 }
 
 const StatCard = ({ label, value, icon: Icon, color, trend, delay, actions }: StatCardProps) => {
