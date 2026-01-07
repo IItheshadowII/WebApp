@@ -17,8 +17,8 @@ export type AppSession = {
 }
 
 export const auth = async (): Promise<AppSession | null> => {
-    const cookieStore: any = cookies()
-    const token = cookieStore.get?.(SESSION_COOKIE_NAME)?.value
+    const cookieStore = await cookies()
+    const token = cookieStore.get(SESSION_COOKIE_NAME)?.value
     if (!token) return null
 
     const session = await prisma.session.findUnique({
@@ -84,13 +84,13 @@ export async function signInWithCredentials(email: string, password: string, nam
 }
 
 export async function signOut() {
-    const cookieStore: any = cookies()
-    const token = cookieStore.get?.(SESSION_COOKIE_NAME)?.value
+    const cookieStore = await cookies()
+    const token = cookieStore.get(SESSION_COOKIE_NAME)?.value
     if (token) {
         await prisma.session.deleteMany({ where: { sessionToken: token } })
     }
 
-    cookieStore.set?.(SESSION_COOKIE_NAME, "", {
+    cookieStore.set(SESSION_COOKIE_NAME, "", {
         httpOnly: true,
         sameSite: "lax",
         secure: false,
