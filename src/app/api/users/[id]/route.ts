@@ -61,8 +61,24 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     const { id } = await params
 
+    // No permitir eliminar tu propio usuario
     if (id === me.id) {
         return NextResponse.json({ error: "No puedes eliminar tu propio usuario" }, { status: 400 })
+    }
+
+    // Verificar que el usuario objetivo exista
+    const target = await prisma.user.findUnique({ where: { id } })
+    if (!target) {
+        return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 })
+    }
+
+    // Si el usuario objetivo es admin, permitir la eliminación solo si hay al menos
+    // otro administrador (evitar eliminar al último admin)
+    if (target.isAdmin) {
+        const otherAdmins = await prisma.user.count({ where: { isAdmin: true, id: { not: id } } })
+        if (otherAdmins < 1) {
+            return NextResponse.json({ error: "No puedes eliminar el último administrador" }, { status: 400 })
+        }
     }
 
     await prisma.user.delete({ where: { id } })
