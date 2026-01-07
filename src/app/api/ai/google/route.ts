@@ -1,26 +1,60 @@
 import { NextResponse } from 'next/server'
+import { auth } from '@/auth'
+import prisma from '@/lib/prisma'
 import fs from 'fs'
 import path from 'path'
 
 const DATA_DIR = path.join(process.cwd(), '.data')
 const SETTINGS_FILE = path.join(DATA_DIR, 'google_settings.json')
 
+async function loadGoogleSettingsForUser(userId: string) {
+  // DB first (persistente)
+  const dbConfig = await prisma.aIConfig.findFirst({ where: { userId } })
+  if (dbConfig?.apiKey) {
+    return {
+      apiKey: dbConfig.apiKey,
+      model: dbConfig.modelName || 'gemini-2.0-flash',
+      baseUrl: process.env.GOOGLE_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta',
+    }
+  }
+
+  // Env fallback
+  if (process.env.GOOGLE_API_KEY) {
+    return {
+      apiKey: process.env.GOOGLE_API_KEY,
+      model: process.env.GOOGLE_MODEL || 'gemini-2.0-flash',
+      baseUrl: process.env.GOOGLE_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta',
+    }
+  }
+
+  // File fallback (legacy)
+  try {
+    const raw = await fs.promises.readFile(SETTINGS_FILE, 'utf-8')
+    const parsed = JSON.parse(raw)
+    if (parsed && parsed.apiKey) return { apiKey: parsed.apiKey, model: parsed.model, baseUrl: parsed.baseUrl }
+  } catch (e) {
+    // ignore
+  }
+
+  return null
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json()
     const { prompt, temperature = 0.2, maxTokens = 512 } = body
 
-    // Load settings
-    let settings: any = null
-    try {
-      const raw = await fs.promises.readFile(SETTINGS_FILE, 'utf-8')
-      settings = JSON.parse(raw)
-    } catch (e) {
+    const session = await auth()
+    const userId = session?.user?.id
+    if (!userId) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
+
+    const settings = await loadGoogleSettingsForUser(userId)
+    if (!settings) {
       return NextResponse.json({ ok: false, error: 'No API settings configured' }, { status: 400 })
     }
 
     const apiKey = settings.apiKey
-    const model = settings.model || 'gemini-2.0'
+    const model = settings.model || 'gemini-2.0-flash'
     const baseUrl = settings.baseUrl || 'https://generativelanguage.googleapis.com/v1beta'
 
     if (!apiKey) {
