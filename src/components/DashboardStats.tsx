@@ -66,12 +66,33 @@ export const DashboardStats = ({ transactions, usdRate = 1 }: DashboardStatsProp
             .filter(t => t.type === 'EXPENSE' && t.currency === 'USD')
             .reduce((acc, t) => acc + t.amount, 0)
 
+        // Totales pagados (solo items con isPaid === true) — usados para calcular Balance Neto
+        const paidIncomeARS = currentMonth
+            .filter(t => t.type === 'INCOME' && t.currency === 'ARS' && t.isPaid)
+            .reduce((acc, t) => acc + t.amount, 0)
+
+        const paidIncomeUSD = currentMonth
+            .filter(t => t.type === 'INCOME' && t.currency === 'USD' && t.isPaid)
+            .reduce((acc, t) => acc + t.amount, 0)
+
+        const paidExpensesARS = currentMonth
+            .filter(t => t.type === 'EXPENSE' && t.currency === 'ARS' && t.isPaid)
+            .reduce((acc, t) => acc + t.amount, 0)
+
+        const paidExpensesUSD = currentMonth
+            .filter(t => t.type === 'EXPENSE' && t.currency === 'USD' && t.isPaid)
+            .reduce((acc, t) => acc + t.amount, 0)
+
         // Convertimos todo a ARS usando la cotización configurada
         const totalIncome = totalIncomeARS + totalIncomeUSD * rate
         const totalExpenses = totalExpensesARS + totalExpensesUSD * rate
 
-        const balance = totalIncome - totalExpenses
-        const savingsRate = totalIncome > 0 ? ((balance / totalIncome) * 100) : 0
+        // Balance Neto debe usar solo los items pagados (paidIncome / paidExpenses)
+        const paidTotalIncome = paidIncomeARS + paidIncomeUSD * rate
+        const paidTotalExpenses = paidExpensesARS + paidExpensesUSD * rate
+
+        const balance = paidTotalIncome - paidTotalExpenses
+        const savingsRate = paidTotalIncome > 0 ? ((balance / paidTotalIncome) * 100) : 0
 
         return {
             totalIncome,
