@@ -23,6 +23,13 @@ async function loadTicketAiConfigForUser(userId: string) {
         return { provider, apiKey: dbConfig.apiKey };
     }
 
+    // Fallback: si hay una config cargada por otro usuario (modo "global" previo)
+    const anyConfig = await prisma.aIConfig.findFirst();
+    if (anyConfig?.apiKey) {
+        const provider = normalizeProvider(anyConfig.provider) || "google";
+        return { provider, apiKey: anyConfig.apiKey };
+    }
+
     // Fallback: configuración global en .data (misma que usa el consejero)
     try {
         const raw = await fs.promises.readFile(SETTINGS_FILE, "utf-8");
@@ -30,6 +37,14 @@ async function loadTicketAiConfigForUser(userId: string) {
         if (parsed?.apiKey) return { provider: "google" as const, apiKey: String(parsed.apiKey) };
     } catch {
         // ignore
+    }
+
+    // Fallback: variables de entorno (útil en deploys donde .data no persiste)
+    if (process.env.GOOGLE_API_KEY) {
+        return { provider: "google" as const, apiKey: String(process.env.GOOGLE_API_KEY) };
+    }
+    if (process.env.OPENAI_API_KEY) {
+        return { provider: "openai" as const, apiKey: String(process.env.OPENAI_API_KEY) };
     }
 
     return null;
