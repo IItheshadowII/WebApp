@@ -29,16 +29,24 @@ export async function GET(_req: NextRequest) {
         // Si no hay sesión, intentamos usar un usuario "real" antes que el mock
         const defaultEmail = process.env.DEFAULT_USER_EMAIL || "mock@example.com";
 
-        const realUser = await prisma.user.findFirst({
+        // Preferimos devolver un usuario activo NO admin (ej. un usuario real) antes que el admin
+        let realUser = await prisma.user.findFirst({
             where: {
                 isActive: true,
+                isAdmin: false,
                 // Evitamos el usuario de demo por defecto si existe
                 email: { not: defaultEmail },
             },
-            orderBy: {
-                name: "asc",
-            },
-        });
+            orderBy: { createdAt: 'desc' },
+        })
+
+        // Si no encontramos usuarios no-admin, devolvemos cualquier usuario activo (incluye admin)
+        if (!realUser) {
+            realUser = await prisma.user.findFirst({
+                where: { isActive: true, email: { not: defaultEmail } },
+                orderBy: { createdAt: 'desc' },
+            })
+        }
 
         if (realUser) {
             const displayName = realUser.name || (realUser.email ? realUser.email.split("@")[0] : "Usuario");
