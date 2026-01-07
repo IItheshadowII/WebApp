@@ -7,9 +7,10 @@ import { motion } from 'framer-motion'
 
 interface DashboardStatsProps {
     transactions: any[]
+    usdRate?: number
 }
 
-export const DashboardStats = ({ transactions }: DashboardStatsProps) => {
+export const DashboardStats = ({ transactions, usdRate = 1 }: DashboardStatsProps) => {
     const [savingsGoals, setSavingsGoals] = useState<Array<{id:string,name:string,amount:number,visible?:boolean}>>([])
 
     useEffect(() => {
@@ -42,18 +43,32 @@ export const DashboardStats = ({ transactions }: DashboardStatsProps) => {
     }
     const stats = useMemo(() => {
         const now = new Date()
+        const rate = usdRate > 0 ? usdRate : 1
+
         const currentMonth = transactions.filter(t => {
             const d = new Date(t.date)
             return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
         })
 
-        const totalIncome = currentMonth
-            .filter(t => t.type === 'INCOME')
+        const totalIncomeARS = currentMonth
+            .filter(t => t.type === 'INCOME' && t.currency === 'ARS')
             .reduce((acc, t) => acc + t.amount, 0)
 
-        const totalExpenses = currentMonth
-            .filter(t => t.type === 'EXPENSE')
+        const totalIncomeUSD = currentMonth
+            .filter(t => t.type === 'INCOME' && t.currency === 'USD')
             .reduce((acc, t) => acc + t.amount, 0)
+
+        const totalExpensesARS = currentMonth
+            .filter(t => t.type === 'EXPENSE' && t.currency === 'ARS')
+            .reduce((acc, t) => acc + t.amount, 0)
+
+        const totalExpensesUSD = currentMonth
+            .filter(t => t.type === 'EXPENSE' && t.currency === 'USD')
+            .reduce((acc, t) => acc + t.amount, 0)
+
+        // Convertimos todo a ARS usando la cotización configurada
+        const totalIncome = totalIncomeARS + totalIncomeUSD * rate
+        const totalExpenses = totalExpensesARS + totalExpensesUSD * rate
 
         const balance = totalIncome - totalExpenses
         const savingsRate = totalIncome > 0 ? ((balance / totalIncome) * 100) : 0
@@ -65,7 +80,7 @@ export const DashboardStats = ({ transactions }: DashboardStatsProps) => {
             savingsRate,
             transactionCount: currentMonth.length
         }
-    }, [transactions])
+    }, [transactions, usdRate])
 
     const statCards: StatCardProps[] = [
         {

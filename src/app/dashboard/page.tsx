@@ -48,6 +48,7 @@ export default function DashboardPage() {
     const [isSavingsModalOpen, setIsSavingsModalOpen] = useState(false)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [editingTransaction, setEditingTransaction] = useState<any | null>(null)
+    const [usdRate, setUsdRate] = useState<number>(1)
 
     // Data States
     const [chartData, setChartData] = useState<{ name: string, income: number, expenses: number }[]>([])
@@ -101,6 +102,22 @@ export default function DashboardPage() {
         update()
         mq.addEventListener('change', update)
         return () => mq.removeEventListener('change', update)
+    }, [])
+
+    // Load USD -> ARS rate from backend (internet)
+    useEffect(() => {
+        const loadRate = async () => {
+            try {
+                const res = await fetch('/api/rates/usd-ars')
+                const data = await res.json().catch(() => ({}))
+                const rate = Number(data?.rate)
+                if (rate && rate > 0) setUsdRate(rate)
+            } catch (e) {
+                console.error('Error obteniendo cotización USD->ARS:', e)
+            }
+        }
+
+        loadRate()
     }, [])
 
     const handleTogglePaid = async (transactionId: string, currentStatus: boolean) => {
@@ -162,7 +179,7 @@ export default function DashboardPage() {
                 return (
                     <div className="space-y-8">
                         {/* Dashboard Stats Cards */}
-                        <DashboardStats transactions={transactions} />
+                        <DashboardStats transactions={transactions} usdRate={usdRate} />
 
                         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                             {/* Main Monthly Overview Section - Replaces Chart */}
@@ -332,7 +349,29 @@ export default function DashboardPage() {
                         </div>
 
                         <div className="flex items-stretch gap-8 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
-                            <SummaryCard label="Balance Total" amount={(transactions.reduce((acc, t) => t.type === 'INCOME' && t.currency === 'ARS' ? acc + t.amount : acc, 0) - transactions.reduce((acc, t) => t.type === 'EXPENSE' && t.currency === 'ARS' ? acc + t.amount : acc, 0)).toLocaleString()} currency="ARS" />
+                            {(() => {
+                                const rate = usdRate > 0 ? usdRate : 1
+
+                                const totalIncomeARS = transactions.reduce((acc, t) => {
+                                    if (t.type !== 'INCOME') return acc
+                                    return acc + (t.currency === 'USD' ? t.amount * rate : t.amount)
+                                }, 0)
+
+                                const totalExpensesARS = transactions.reduce((acc, t) => {
+                                    if (t.type !== 'EXPENSE') return acc
+                                    return acc + (t.currency === 'USD' ? t.amount * rate : t.amount)
+                                }, 0)
+
+                                const balanceTotal = totalIncomeARS - totalExpensesARS
+
+                                return (
+                                    <SummaryCard
+                                        label="Balance Total"
+                                        amount={balanceTotal.toLocaleString()}
+                                        currency="ARS"
+                                    />
+                                )
+                            })()}
                             <div className="w-[1px] bg-white/10 hidden md:block" />
                             <SummaryCard label="Gastos USD" amount={transactions.reduce((acc, t) => t.type === 'EXPENSE' && t.currency === 'USD' ? acc + t.amount : acc, 0).toLocaleString()} currency="USD" />
                         </div>
