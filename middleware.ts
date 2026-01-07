@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE_NAME } from "./src/auth";
+
+// Debemos evitar importar módulos de Node (como crypto/bcrypt) en el runtime Edge,
+// por eso definimos aquí el nombre de la cookie en lugar de reutilizar auth.ts.
+const SESSION_COOKIE_NAME = "session_token";
 
 // Rutas públicas que NO requieren autenticación
 const PUBLIC_PATHS = [
