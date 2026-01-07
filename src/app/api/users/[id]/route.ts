@@ -11,20 +11,8 @@ async function requireAdmin() {
         if (me?.isAdmin) return me
     }
 
-    // Fallback: usa (o crea) un admin global para entornos sin login
-    let admin = await prisma.user.findFirst({ where: { isAdmin: true } })
-    if (!admin) {
-        admin = await prisma.user.create({
-            data: {
-                email: "admin@example.com",
-                name: "Admin",
-                isActive: true,
-                isAdmin: true,
-            },
-        })
-    }
-
-    return admin
+    // Sin sesión admin válida
+    return null
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
