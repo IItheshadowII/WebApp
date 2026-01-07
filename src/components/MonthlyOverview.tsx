@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'
 import { Card } from './ui-glass'
 import { ArrowUpCircle, ArrowDownCircle, DollarSign, CreditCard } from 'lucide-react'
 
-export const MonthlyOverview = ({ transactions }: { transactions: any[] }) => {
+export const MonthlyOverview = ({ transactions, usdRate = 1 }: { transactions: any[]; usdRate?: number }) => {
     // Filter for Current Month
     const currentMonthData = useMemo(() => {
         const now = new Date()
@@ -23,13 +23,39 @@ export const MonthlyOverview = ({ transactions }: { transactions: any[] }) => {
     const expensesVariable = expenses.filter(t => t.frequency === 'VARIABLE' && t.currency === 'ARS')
     const expensesUSD = expenses.filter(t => t.currency === 'USD')
 
-    // Totals
+    const rate = usdRate > 0 ? usdRate : 1
+
+    // Totals para visualización (se mantienen como estaban)
     const totalIncomeARS = income.reduce((acc, t) => t.currency === 'ARS' ? acc + t.amount : acc, 0)
     const totalFixed = expensesFixed.reduce((acc, t) => acc + t.amount, 0)
     const totalVariable = expensesVariable.reduce((acc, t) => acc + t.amount, 0)
     const totalUSD = expensesUSD.reduce((acc, t) => acc + t.amount, 0)
 
-    const balance = totalIncomeARS - totalFixed - totalVariable
+    // Balance Neto alineado con DashboardStats: solo montos pagados y convertido todo a ARS
+    const paidIncomeARS = income
+        .filter(t => t.isPaid && t.currency === 'ARS')
+        .reduce((acc, t) => acc + t.amount, 0)
+
+    const paidIncomeUSD = income
+        .filter(t => t.isPaid && t.currency === 'USD')
+        .reduce((acc, t) => acc + t.amount, 0)
+
+    const paidFixedARS = expensesFixed
+        .filter(t => t.isPaid)
+        .reduce((acc, t) => acc + t.amount, 0)
+
+    const paidVariableARS = expensesVariable
+        .filter(t => t.isPaid)
+        .reduce((acc, t) => acc + t.amount, 0)
+
+    const paidExpensesUSD = expensesUSD
+        .filter(t => t.isPaid)
+        .reduce((acc, t) => acc + t.amount, 0)
+
+    const paidIncomeTotalARS = paidIncomeARS + paidIncomeUSD * rate
+    const paidExpensesTotalARS = paidFixedARS + paidVariableARS + paidExpensesUSD * rate
+
+    const balance = paidIncomeTotalARS - paidExpensesTotalARS
 
     return (
         <Card className="h-full !p-0 !bg-zinc-950/20 shadow-none border-white/[0.03] overflow-hidden flex flex-col group">

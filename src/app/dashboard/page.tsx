@@ -201,7 +201,7 @@ export default function DashboardPage() {
                             {/* Main Monthly Overview Section - Replaces Chart */}
                             <div className="xl:col-span-2 space-y-8">
                                 <div className="h-[500px]">
-                                    <MonthlyOverview transactions={transactions} />
+                                    <MonthlyOverview transactions={transactions} usdRate={usdRate} />
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -218,7 +218,14 @@ export default function DashboardPage() {
                                         <div>
                                             <h3 className="text-xs font-bold text-white/30 uppercase tracking-widest mb-2">Gastos por Pagar</h3>
                                             <div className="text-4xl font-bold tracking-tighter text-amber-400 mb-2">
-                                                $ {transactions.filter(t => t.type === 'EXPENSE' && !t.isPaid).reduce((acc, t) => acc + (t.currency === 'ARS' ? t.amount : 0), 0).toLocaleString()}
+                                                $ {transactions
+                                                    .filter(t => t.type === 'EXPENSE' && !t.isPaid)
+                                                    .reduce((acc, t) => {
+                                                        const rate = usdRate > 0 ? usdRate : 1
+                                                        if (t.currency === 'USD') return acc + t.amount * rate
+                                                        return acc + t.amount
+                                                    }, 0)
+                                                    .toLocaleString()}
                                             </div>
                                             <div className="flex items-center gap-2 text-white/40">
                                                 <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
