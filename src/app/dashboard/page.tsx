@@ -12,7 +12,7 @@ import {
     Settings, Plus, Image as ImageIcon, Wallet, LogOut,
     FileText, TrendingUp, LayoutDashboard, Database, PieChart,
     Activity, ChevronLeft, ChevronRight, Menu, X, ArrowUpRight,
-    ArrowDownRight, Search, Calendar, Filter, AlertCircle, Trash2,
+    ArrowDownRight, Search, Calendar, Filter, AlertCircle, Trash2, Edit3,
     Users,
 } from 'lucide-react'
 import { CheckCircle2 } from 'lucide-react'
@@ -46,6 +46,8 @@ export default function DashboardPage() {
     const [isAIModalOpen, setIsAIModalOpen] = useState(false)
     const [isReportModalOpen, setIsReportModalOpen] = useState(false)
     const [isSavingsModalOpen, setIsSavingsModalOpen] = useState(false)
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+    const [editingTransaction, setEditingTransaction] = useState<any | null>(null)
 
     // Data States
     const [chartData, setChartData] = useState<{ name: string, income: number, expenses: number }[]>([])
@@ -82,6 +84,11 @@ export default function DashboardPage() {
                 setTransactions([])
                 setChartData([])
             })
+    }
+
+    const openEdit = (t: any) => {
+        setEditingTransaction(t)
+        setIsEditModalOpen(true)
     }
 
     useEffect(() => {
@@ -143,7 +150,7 @@ export default function DashboardPage() {
     const renderContent = () => {
         switch (currentView) {
             case 'TRANSACTIONS':
-                return <TransactionsView transactions={transactions} onUpdate={fetchData} />
+                return <TransactionsView transactions={transactions} onUpdate={fetchData} onEdit={openEdit} />
             case 'ANALYTICS':
                 return <AnalyticsView chartData={chartData} transactions={transactions} />
             case 'SETTINGS':
@@ -249,6 +256,9 @@ export default function DashboardPage() {
                                                         </button>
                                                         <button onClick={() => handleToggleSavings(t.id, t.isSavings)} className={`p-2 rounded-lg border ${t.isSavings ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' : 'bg-white/5 border-white/10 text-white/40'}`} title={t.isSavings ? 'Quitar ahorro' : 'Marcar como ahorro'}>
                                                             <PiggyBank className="w-4 h-4" />
+                                                        </button>
+                                                        <button onClick={() => openEdit(t)} className="p-2 rounded-lg border bg-white/5 border-white/10 text-white/40" title="Editar">
+                                                            <Edit3 className="w-4 h-4" />
                                                         </button>
                                                         <button onClick={() => handleDelete(t.id)} className="p-2 rounded-lg border bg-white/5 border-white/10 text-white/40" title="Eliminar">
                                                             <Trash2 className="w-4 h-4" />
@@ -374,6 +384,24 @@ export default function DashboardPage() {
                 {isReportModalOpen && (
                     <Modal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} title="Generar Reporte">
                         <ReportGenerator />
+                    </Modal>
+                )}
+                {isEditModalOpen && editingTransaction && (
+                    <Modal
+                        isOpen={isEditModalOpen}
+                        onClose={() => { setIsEditModalOpen(false); setEditingTransaction(null) }}
+                        title={editingTransaction.type === 'INCOME' ? 'Editar Ingreso' : 'Editar Gasto'}
+                    >
+                        <TransactionForm
+                            type={editingTransaction.type}
+                            mode="edit"
+                            transaction={editingTransaction}
+                            onSuccess={() => {
+                                setIsEditModalOpen(false)
+                                setEditingTransaction(null)
+                                fetchData()
+                            }}
+                        />
                     </Modal>
                 )}
                 {isSavingsModalOpen && (
@@ -570,7 +598,7 @@ function ActionButton({ onClick, icon, label, color, full = false }: any) {
 
 // --- VIEWS ---
 
-function TransactionsView({ transactions, onUpdate }: { transactions: any[], onUpdate?: () => void }) {
+function TransactionsView({ transactions, onUpdate, onEdit }: { transactions: any[], onUpdate?: () => void, onEdit?: (t: any) => void }) {
     const [filter, setFilter] = useState('ALL')
     const [paymentFilter, setPaymentFilter] = useState('ALL')
     const [searchTerm, setSearchTerm] = useState('')
@@ -744,7 +772,14 @@ function TransactionsView({ transactions, onUpdate }: { transactions: any[], onU
                                 <td className={`p-4 text-right font-bold ${t.type === 'INCOME' ? 'text-emerald-400' : 'text-white'}`}>
                                     {t.type === 'INCOME' ? '+' : '-'} {t.currency === 'USD' ? 'U$D' : '$'} {t.amount.toLocaleString()}
                                 </td>
-                                <td className="p-4 text-right">
+                                <td className="p-4 text-right flex items-center justify-end gap-2">
+                                    <button
+                                        onClick={() => onEdit && onEdit(t)}
+                                        className="p-2 hover:bg-blue-500/20 rounded-lg text-white/20 hover:text-blue-400 transition-all"
+                                        title="Editar registro"
+                                    >
+                                        <Edit3 className="w-4 h-4" />
+                                    </button>
                                     <button
                                         onClick={() => handleDelete(t.id)}
                                         className="p-2 hover:bg-rose-500/20 rounded-lg text-white/20 hover:text-rose-500 transition-all"

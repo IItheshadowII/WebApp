@@ -8,12 +8,33 @@ export async function PATCH(
     const { id } = await params;
     const data = await req.json();
 
+    const updateData: any = {};
+
+    if (typeof data.amount === 'number' && !Number.isNaN(data.amount)) {
+        updateData.amount = data.amount;
+    }
+    if (typeof data.description === 'string') {
+        updateData.description = data.description;
+    }
+    if (data.currency === 'ARS' || data.currency === 'USD') {
+        updateData.currency = data.currency;
+    }
+    if (typeof data.frequency === 'string') {
+        updateData.frequency = data.frequency;
+    }
+    if (typeof data.incomeType === 'string' || data.incomeType === null) {
+        updateData.incomeType = data.incomeType;
+    }
+    if (typeof data.isPaid !== 'undefined') {
+        updateData.isPaid = !!data.isPaid;
+    }
+    if (typeof data.isSavings !== 'undefined') {
+        updateData.isSavings = !!data.isSavings;
+    }
+
     const updated = await prisma.transaction.update({
         where: { id },
-        data: {
-            ...(typeof data.isPaid !== 'undefined' ? { isPaid: data.isPaid } : {}),
-            ...(typeof data.isSavings !== 'undefined' ? { isSavings: data.isSavings } : {}),
-        },
+        data: updateData,
     });
 
     return NextResponse.json(updated);

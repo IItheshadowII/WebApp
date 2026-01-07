@@ -25,22 +25,30 @@ const transactionFormSchema = z.object({
 })
 
 type TransactionFormData = z.infer<typeof transactionFormSchema>
+type TransactionFormProps = {
+    type?: 'EXPENSE' | 'INCOME'
+    onSuccess?: () => void
+    mode?: 'create' | 'edit'
+    transaction?: any
+}
 
-export const TransactionForm = ({ type = 'EXPENSE', onSuccess }: { type?: 'EXPENSE' | 'INCOME', onSuccess?: () => void }) => {
+export const TransactionForm = ({ type = 'EXPENSE', onSuccess, mode = 'create', transaction }: TransactionFormProps) => {
     const [status, setStatus] = useState<'IDLE' | 'LOADING' | 'SUCCESS'>('IDLE')
     const toast = useToast()
     const router = useRouter()
 
+    const effectiveType: 'EXPENSE' | 'INCOME' = (transaction?.type === 'INCOME' || transaction?.type === 'EXPENSE') ? transaction.type : (type || 'EXPENSE')
+
     const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm<TransactionFormData>({
         resolver: zodResolver(transactionFormSchema),
         defaultValues: {
-            amount: '',
-            description: '',
-            currency: 'ARS',
-            frequency: 'VARIABLE',
-            incomeType: 'BLANCO',
-            isPaid: false,
-            isSavings: false,
+            amount: transaction && typeof transaction.amount === 'number' ? String(transaction.amount) : '',
+            description: transaction?.description || '',
+            currency: transaction?.currency || 'ARS',
+            frequency: transaction?.frequency || 'VARIABLE',
+            incomeType: transaction?.incomeType || 'BLANCO',
+            isPaid: typeof transaction?.isPaid === 'boolean' ? transaction.isPaid : false,
+            isSavings: typeof transaction?.isSavings === 'boolean' ? transaction.isSavings : false,
         }
     })
 
@@ -88,14 +96,14 @@ export const TransactionForm = ({ type = 'EXPENSE', onSuccess }: { type?: 'EXPEN
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                        // normalize before sending
-                        amount: parseFloat(normalizeNumberInput(data.amount)),
+                    // normalize before sending
+                    amount: parseFloat(normalizeNumberInput(data.amount)),
                     description: data.description,
                     currency: data.currency,
-                    type,
+                    type: effectiveType,
                     frequency: data.frequency,
-                    incomeType: type === 'INCOME' ? data.incomeType : null,
-                    isPaid: type === 'EXPENSE' ? data.isPaid : true,
+                    incomeType: effectiveType === 'INCOME' ? data.incomeType : null,
+                    isPaid: effectiveType === 'EXPENSE' ? data.isPaid : true,
                     isSavings: !!data.isSavings
                 })
             })
