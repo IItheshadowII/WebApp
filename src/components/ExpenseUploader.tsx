@@ -3,12 +3,18 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Card, Button } from './ui-glass'
 import { Upload, Camera, Loader2, Check, X } from 'lucide-react'
+import { TransactionForm } from './TransactionForm'
 
-export const ExpenseUploader = () => {
+export const ExpenseUploader = ({ onSaved }: { onSaved?: () => void }) => {
     const [isUploading, setIsUploading] = useState(false)
     const [preview, setPreview] = useState<string | null>(null)
     const [extractedData, setExtractedData] = useState<any>(null)
     const [extractionError, setExtractionError] = useState<string | null>(null)
+
+    const [frequency, setFrequency] = useState<'VARIABLE' | 'FIXED'>('VARIABLE')
+    const [isSaving, setIsSaving] = useState(false)
+    const [savedTransaction, setSavedTransaction] = useState<any>(null)
+    const [isEditing, setIsEditing] = useState(false)
 
     const [isCameraOpen, setIsCameraOpen] = useState(false)
     const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -17,6 +23,9 @@ export const ExpenseUploader = () => {
     const uploadBlob = async (file: Blob, fileName: string) => {
         setIsUploading(true)
         setPreview(URL.createObjectURL(file))
+        setSavedTransaction(null)
+        setIsEditing(false)
+        setFrequency('VARIABLE')
 
         const formData = new FormData()
         formData.append('file', file, fileName)
@@ -38,6 +47,65 @@ export const ExpenseUploader = () => {
             console.error("Error uploading ticket:", error)
         } finally {
             setIsUploading(false)
+        }
+    }
+
+    const saveAsTransaction = async () => {
+        if (!extractedData) return
+        setIsSaving(true)
+        try {
+            const res = await fetch('/api/transactions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'EXPENSE',
+                    amount: extractedData.amount,
+                    description: extractedData.description,
+                    currency: extractedData.currency || 'ARS',
+                    frequency,
+                    category: extractedData.category || null,
+                    isPaid: false,
+                    isSavings: false,
+                })
+            })
+
+            const data = await res.json()
+            if (!res.ok) {
+                setExtractionError((data?.error || data?.message || 'No se pudo guardar el gasto') + (data?.details ? (" — " + data.details) : ""))
+                return
+            }
+
+            setSavedTransaction(data)
+            setExtractionError(null)
+            if (onSaved) onSaved()
+        } catch (e) {
+            console.error('Error saving transaction:', e)
+            setExtractionError('Error de conexión al guardar el gasto')
+        } finally {
+            setIsSaving(false)
+        }
+    }
+
+    const deleteSavedTransaction = async () => {
+        if (!savedTransaction?.id) return
+        const ok = confirm('¿Eliminar este gasto?')
+        if (!ok) return
+
+        try {
+            const res = await fetch(`/api/transactions/${savedTransaction.id}`, { method: 'DELETE' })
+            const data = await res.json().catch(() => ({}))
+            if (!res.ok) {
+                setExtractionError(data?.error || data?.message || 'No se pudo eliminar')
+                return
+            }
+            setSavedTransaction(null)
+            setExtractedData(null)
+            setPreview(null)
+            setExtractionError(null)
+            if (onSaved) onSaved()
+        } catch (e) {
+            console.error('Error deleting transaction:', e)
+            setExtractionError('Error de conexión al eliminar')
         }
     }
 
@@ -164,9 +232,64 @@ export const ExpenseUploader = () => {
                             <span className="font-bold capitalize">{extractedData.category}</span>
                         </div>
                     </div>
-                    <Button variant="success" fullWidth className="mt-4">
-                        Confirmar y Guardar
-                    </Button>
+
+                    {!savedTransaction && !isEditing && (
+                        <>
+                            <div className="pt-2">
+                                <div className="text-xs opacity-60 mb-2">Tipo de gasto</div>
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant={frequency === 'VARIABLE' ? 'glow' : 'secondary'}
+                                        className="flex-1 py-3"
+                                        onClick={() => setFrequency('VARIABLE')}
+                                    >
+                                        Adicional
+                                    </Button>
+                                    <Button
+                                        variant={frequency === 'FIXED' ? 'glow' : 'secondary'}
+                                        className="flex-1 py-3"
+                                        onClick={() => setFrequency('FIXED')}
+                                    >
+                                        Fijo mensual
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <Button
+                                variant="success"
+                                fullWidth
+                                className="mt-4"
+                                onClick={saveAsTransaction}
+                                disabled={isSaving}
+                            >
+                                {isSaving ? 'Guardando...' : 'Confirmar y Guardar'}
+                            </Button>
+                        </>
+                    )}
+
+                    {savedTransaction && !isEditing && (
+                        <div className="flex gap-2 pt-2">
+                            <Button variant="secondary" className="flex-1 py-3" onClick={() => setIsEditing(true)}>
+                                Editar
+                            </Button>
+                            <Button variant="danger" className="flex-1 py-3" onClick={deleteSavedTransaction}>
+                                Eliminar
+                            </Button>
+                        </div>
+                    )}
+
+                    {savedTransaction && isEditing && (
+                        <div className="pt-2">
+                            <TransactionForm
+                                mode="edit"
+                                transaction={savedTransaction}
+                                onSuccess={() => {
+                                    setIsEditing(false)
+                                    if (onSaved) onSaved()
+                                }}
+                            />
+                        </div>
+                    )}
                 </div>
             )}
 

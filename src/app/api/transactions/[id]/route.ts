@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
 
 export async function PATCH(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const { id } = await params;
     const data = await req.json();
+
+    const existing = await prisma.transaction.findFirst({ where: { id, userId } });
+    if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const updateData: any = {};
 
@@ -44,7 +52,14 @@ export async function DELETE(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const { id } = await params;
+
+    const existing = await prisma.transaction.findFirst({ where: { id, userId } });
+    if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     await prisma.transaction.delete({
         where: { id },
