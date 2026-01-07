@@ -1,22 +1,62 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
-import { extractTicketData } from "@/lib/ai-service";
+import { extractTicketData, type AIProvider } from "@/lib/ai-service";
+import fs from "fs";
+import path from "path";
+
+const DATA_DIR = path.join(process.cwd(), ".data");
+const SETTINGS_FILE = path.join(DATA_DIR, "google_settings.json");
+
+function normalizeProvider(provider: unknown): AIProvider | null {
+    if (typeof provider !== "string") return null;
+    const p = provider.trim().toLowerCase();
+    if (p === "google" || p === "gemini") return "google";
+    if (p === "openai") return "openai";
+    return null;
+}
+
+async function loadTicketAiConfigForUser(userId: string) {
+    const dbConfig = await prisma.aIConfig.findFirst({ where: { userId } });
+    if (dbConfig?.apiKey) {
+        const provider = normalizeProvider(dbConfig.provider) || "google";
+        return { provider, apiKey: dbConfig.apiKey };
+    }
+
+    // Fallback: configuración global en .data (misma que usa el consejero)
+    try {
+        const raw = await fs.promises.readFile(SETTINGS_FILE, "utf-8");
+        const parsed = JSON.parse(raw);
+        if (parsed?.apiKey) return { provider: "google" as const, apiKey: String(parsed.apiKey) };
+    } catch {
+        // ignore
+    }
+
+    return null;
+}
 
 export async function POST(req: NextRequest) {
+    const session = await auth();
+    const userId = session?.user?.id;
+    if (!userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const formData = await req.formData();
     const file = formData.get("file") as File;
     if (!file) {
         return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    // Usamos la primera configuración de IA disponible como configuración global
-    const aiConfig = await prisma.aIConfig.findFirst();
-
+    const aiConfig = await loadTicketAiConfigForUser(userId);
     if (!aiConfig) {
-        return NextResponse.json({
-            error: "AI not configured",
-            message: "Por favor configura una API Key de Google o OpenAI primero."
-        }, { status: 400 });
+        return NextResponse.json(
+            {
+                error: "AI not configured",
+                message: "Por favor configura una API Key de Google u OpenAI primero (Ajustes > IA o Ajustes > Google).",
+            },
+            { status: 400 }
+        );
     }
 
     const bytes = await file.arrayBuffer();
@@ -25,7 +65,7 @@ export async function POST(req: NextRequest) {
     try {
         const extraction = await extractTicketData(
             buffer,
-            aiConfig.provider as any,
+            aiConfig.provider,
             aiConfig.apiKey
         );
 
