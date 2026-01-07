@@ -12,36 +12,31 @@ export default function SettingsPage() {
   const [loadingModels, setLoadingModels] = useState(false)
 
   useEffect(() => {
-    fetch('/api/settings/google').then(r => r.json()).then((d) => {
+    fetch('/api/ai/config').then(r => r.json()).then((d) => {
       if (d && d.apiKey) setApiKey(d.apiKey)
-      if (d && d.model) setModel(d.model)
-      if (d && d.baseUrl) setBaseUrl(d.baseUrl)
+      if (d && d.modelName) setModel(d.modelName)
     }).catch(() => { })
   }, [])
 
   const save = async () => {
     setStatus('guardando...')
-    const res = await fetch('/api/settings/google', {
+    const res = await fetch('/api/ai/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apiKey, model, baseUrl })
+      body: JSON.stringify({ provider: 'google', apiKey, modelName: model })
     })
     const data = await res.json()
-    setStatus(data.ok ? 'guardado' : `error: ${data.error}`)
+    setStatus(data.success ? 'guardado' : `error: ${data.error || 'no se pudo guardar'}`)
     setTimeout(() => setStatus(null), 3000)
   }
 
   const remove = async () => {
     setStatus('eliminando...')
-    const res = await fetch('/api/settings/google', { method: 'DELETE' })
-    const data = await res.json()
-    if (data.ok) {
-      setApiKey('')
-      setModel('')
-      setStatus('eliminado')
-    } else {
-      setStatus(`error: ${data.error}`)
-    }
+    // No borramos de DB por ahora; sólo limpiamos el estado local.
+    // (Evita borrar accidentalmente la config del usuario.)
+    setApiKey('')
+    setModel('')
+    setStatus('limpiado')
     setTimeout(() => setStatus(null), 3000)
   }
 

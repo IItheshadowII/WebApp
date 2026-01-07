@@ -11,10 +11,21 @@ export interface TicketExtraction {
     date?: string;
 }
 
-export async function extractTicketData(imageBuffer: Buffer, provider: AIProvider, apiKey: string): Promise<TicketExtraction | null> {
+function normalizeGoogleModelName(modelName: string | undefined | null) {
+    const raw = (modelName || "").trim();
+    if (!raw) return "gemini-2.0-flash";
+    return raw.startsWith("models/") ? raw.slice("models/".length) : raw;
+}
+
+export async function extractTicketData(
+    imageBuffer: Buffer,
+    provider: AIProvider,
+    apiKey: string,
+    options?: { modelName?: string }
+): Promise<TicketExtraction | null> {
     if (provider === "google") {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: normalizeGoogleModelName(options?.modelName) });
 
         const prompt = "Extract the following details from this receipt image: description (store/item), total amount (number), currency (ARS or USD), and a short category. Return ONLY a JSON object with keys: description, amount, currency, category.";
 
@@ -41,7 +52,7 @@ export async function extractTicketData(imageBuffer: Buffer, provider: AIProvide
     if (provider === "openai") {
         const openai = new OpenAI({ apiKey });
         const response = await openai.chat.completions.create({
-            model: "gpt-4o",
+            model: options?.modelName || "gpt-4o",
             messages: [
                 {
                     role: "user",

@@ -20,31 +20,45 @@ async function loadTicketAiConfigForUser(userId: string) {
     const dbConfig = await prisma.aIConfig.findFirst({ where: { userId } });
     if (dbConfig?.apiKey) {
         const provider = normalizeProvider(dbConfig.provider) || "google";
-        return { provider, apiKey: dbConfig.apiKey };
+        return { provider, apiKey: dbConfig.apiKey, modelName: dbConfig.modelName || undefined };
     }
 
     // Fallback: si hay una config cargada por otro usuario (modo "global" previo)
     const anyConfig = await prisma.aIConfig.findFirst();
     if (anyConfig?.apiKey) {
         const provider = normalizeProvider(anyConfig.provider) || "google";
-        return { provider, apiKey: anyConfig.apiKey };
+        return { provider, apiKey: anyConfig.apiKey, modelName: anyConfig.modelName || undefined };
     }
 
     // Fallback: configuración global en .data (misma que usa el consejero)
     try {
         const raw = await fs.promises.readFile(SETTINGS_FILE, "utf-8");
         const parsed = JSON.parse(raw);
-        if (parsed?.apiKey) return { provider: "google" as const, apiKey: String(parsed.apiKey) };
+        if (parsed?.apiKey) {
+            return {
+                provider: "google" as const,
+                apiKey: String(parsed.apiKey),
+                modelName: parsed?.model ? String(parsed.model) : undefined,
+            };
+        }
     } catch {
         // ignore
     }
 
     // Fallback: variables de entorno (útil en deploys donde .data no persiste)
     if (process.env.GOOGLE_API_KEY) {
-        return { provider: "google" as const, apiKey: String(process.env.GOOGLE_API_KEY) };
+        return {
+            provider: "google" as const,
+            apiKey: String(process.env.GOOGLE_API_KEY),
+            modelName: process.env.GOOGLE_MODEL || "gemini-2.0-flash",
+        };
     }
     if (process.env.OPENAI_API_KEY) {
-        return { provider: "openai" as const, apiKey: String(process.env.OPENAI_API_KEY) };
+        return {
+            provider: "openai" as const,
+            apiKey: String(process.env.OPENAI_API_KEY),
+            modelName: process.env.OPENAI_MODEL || "gpt-4o",
+        };
     }
 
     return null;
@@ -81,7 +95,8 @@ export async function POST(req: NextRequest) {
         const extraction = await extractTicketData(
             buffer,
             aiConfig.provider,
-            aiConfig.apiKey
+            aiConfig.apiKey,
+            { modelName: aiConfig.modelName }
         );
 
         if (!extraction) {
