@@ -37,14 +37,14 @@ export async function GET(_req: NextRequest) {
                 // Evitamos el usuario de demo por defecto si existe
                 email: { not: defaultEmail },
             },
-            orderBy: { createdAt: 'desc' },
+            orderBy: { name: 'asc' },
         })
 
         // Si no encontramos usuarios no-admin, devolvemos cualquier usuario activo (incluye admin)
         if (!realUser) {
             realUser = await prisma.user.findFirst({
                 where: { isActive: true, email: { not: defaultEmail } },
-                orderBy: { createdAt: 'desc' },
+                orderBy: { name: 'asc' },
             })
         }
 
