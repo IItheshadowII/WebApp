@@ -65,12 +65,14 @@ export default function LoginPage() {
                         <div>
                             <label className="block text-sm mb-4 text-white/70 font-medium">Correo electrónico</label>
                             <div className="relative">
-                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 pointer-events-none" />
+                                <div className="absolute inset-y-0 left-0 flex items-center pl-6 pointer-events-none">
+                                    <Mail className="w-5 h-5 text-white/30" />
+                                </div>
                                 <input
                                     type="email"
                                     value={email}
                                     onChange={e => setEmail(e.target.value)}
-                                    className="w-full pl-12 pr-6 py-5 rounded-xl bg-black/40 border border-white/10 text-base focus:outline-none focus:border-blue-500 focus:bg-black/60 transition-all text-white placeholder:text-white/20"
+                                    className="w-full pl-16 pr-6 py-5 rounded-xl bg-black/40 border border-white/10 text-base focus:outline-none focus:border-blue-500 focus:bg-black/60 transition-all text-white placeholder:text-white/20"
                                     placeholder="tu@email.com"
                                     required
                                     autoComplete="email"
@@ -81,12 +83,14 @@ export default function LoginPage() {
                         <div>
                             <label className="block text-sm mb-4 text-white/70 font-medium">Contraseña</label>
                             <div className="relative">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 pointer-events-none" />
+                                <div className="absolute inset-y-0 left-0 flex items-center pl-6 pointer-events-none">
+                                    <Lock className="w-5 h-5 text-white/30" />
+                                </div>
                                 <input
                                     type="password"
                                     value={password}
                                     onChange={e => setPassword(e.target.value)}
-                                    className="w-full pl-12 pr-6 py-5 rounded-xl bg-black/40 border border-white/10 text-base focus:outline-none focus:border-blue-500 focus:bg-black/60 transition-all text-white placeholder:text-white/20"
+                                    className="w-full pl-16 pr-6 py-5 rounded-xl bg-black/40 border border-white/10 text-base focus:outline-none focus:border-blue-500 focus:bg-black/60 transition-all text-white placeholder:text-white/20"
                                     placeholder="••••••••"
                                     required
                                     autoComplete="current-password"
