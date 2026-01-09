@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { authFromRequest } from "@/auth";
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
     try {
-        const session = await auth();
+        const session = await authFromRequest(req);
         if (session?.user?.id) {
             // Return the user from session
             return NextResponse.json({ user: session.user });

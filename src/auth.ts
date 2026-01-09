@@ -1,4 +1,5 @@
 import { cookies } from "next/headers"
+import type { NextRequest } from "next/server"
 import crypto from "crypto"
 import bcrypt from "bcryptjs"
 import prisma from "@/lib/prisma"
@@ -19,6 +20,38 @@ export type AppSession = {
 export const auth = async (): Promise<AppSession | null> => {
     const cookieStore = await cookies()
     const token = cookieStore.get(SESSION_COOKIE_NAME)?.value
+    if (!token) return null
+
+    const session = await prisma.session.findUnique({
+        where: { sessionToken: token },
+        include: { user: true },
+    })
+
+    if (!session || !session.user) return null
+
+    return {
+        user: {
+            id: session.user.id,
+            name: session.user.name,
+            email: session.user.email,
+            image: session.user.image,
+        },
+        expires: session.expires.toISOString(),
+        sessionToken: token,
+    }
+}
+
+function getBearerToken(req: NextRequest): string | null {
+    const header = req.headers.get("authorization") || req.headers.get("Authorization")
+    if (!header) return null
+    const match = header.match(/^Bearer\s+(.+)$/i)
+    return match?.[1]?.trim() || null
+}
+
+export async function authFromRequest(req: NextRequest): Promise<AppSession | null> {
+    const bearerToken = getBearerToken(req)
+    const cookieToken = req.cookies.get(SESSION_COOKIE_NAME)?.value
+    const token = bearerToken || cookieToken
     if (!token) return null
 
     const session = await prisma.session.findUnique({

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { authFromRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { extractTicketData, type AIProvider } from "@/lib/ai-service";
 import fs from "fs";
@@ -65,7 +65,7 @@ async function loadTicketAiConfigForUser(userId: string) {
 }
 
 export async function POST(req: NextRequest) {
-    const session = await auth();
+    const session = await authFromRequest(req);
     const userId = session?.user?.id;
     if (!userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

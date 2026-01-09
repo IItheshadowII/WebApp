@@ -22,3 +22,6 @@ docker-compose.override.yml
 # .env
 
 /src/generated/prisma
+
+# TypeScript incremental build info
+*.tsbuildinfo
